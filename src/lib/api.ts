@@ -8,6 +8,7 @@ const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   if (typeof window !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session = (await getSession()) as any;
     if (session?.accessToken) {
       config.headers.Authorization = `Bearer ${session.accessToken}`;

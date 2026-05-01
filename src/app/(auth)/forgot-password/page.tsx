@@ -17,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
+import { authService } from "@/services/auth.service";
+import { useToast } from "@/hooks/use-toast";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -27,6 +29,7 @@ type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -38,9 +41,19 @@ export default function ForgotPasswordPage() {
   async function onSubmit(values: ForgotPasswordValues) {
     setLoading(true);
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await authService.forgotPassword(values.email);
       setSubmitted(true);
+      toast({
+        title: "Check your email",
+        description: "If an account exists with that email, we've sent you password reset instructions.",
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

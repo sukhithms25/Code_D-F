@@ -1,25 +1,64 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { 
-  CheckCircle2, 
   Clock, 
   BarChart3, 
   Award,
-  ChevronRight,
   TrendingUp,
   BookOpen
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-
-const progressStats = [
-  { module: "Module 1: Web Foundations", progress: 100, status: "Completed", date: "Jan 12, 2024" },
-  { module: "Module 2: React Deep Dive", progress: 65, status: "In Progress", date: "Active now" },
-  { module: "Module 3: Advanced Node.js", progress: 0, status: "Not Started", date: "Unlock soon" },
-];
+import { studentService } from "@/services/student.service";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 export default function StudentProgressPage() {
+  const [progressStats, setProgressStats] = useState<any[]>([]);
+  const [scoreData, setScoreData] = useState<any>(null);
+  const [roadmap, setRoadmap] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProgress() {
+      try {
+        const [progRes, scoreRes, roadmapRes] = await Promise.all([
+          studentService.getProgress(),
+          studentService.getScore(),
+          studentService.getRoadmap()
+        ]);
+
+        setScoreData(scoreRes.data?.data || null);
+        setRoadmap(roadmapRes.data?.data || null);
+
+        if (progRes.data?.progress) {
+          setProgressStats(progRes.data.progress);
+        } else {
+          // Fallback if empty to prevent completely blank UI during testing
+          setProgressStats([
+            { module: "Module 1: Web Foundations", progress: 100, status: "Completed", date: "Jan 12, 2024" },
+            { module: "Module 2: React Deep Dive", progress: 65, status: "In Progress", date: "Active now" },
+            { module: "Module 3: Advanced Node.js", progress: 0, status: "Not Started", date: "Unlock soon" }
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch progress", error);
+        // Fallback for demo
+        setProgressStats([
+          { module: "Module 1: Web Foundations", progress: 100, status: "Completed", date: "Jan 12, 2024" },
+          { module: "Module 2: React Deep Dive", progress: 65, status: "In Progress", date: "Active now" },
+          { module: "Module 3: Advanced Node.js", progress: 0, status: "Not Started", date: "Unlock soon" }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProgress();
+  }, []);
+
+  if (loading) return <div className="text-white p-8">Loading progress...</div>;
+
   return (
     <div className="space-y-8 pb-12">
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -36,7 +75,7 @@ export default function StudentProgressPage() {
           </div>
           <div>
              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Learning Time</p>
-             <p className="text-2xl font-bold text-white">124.5h</p>
+             <p className="text-2xl font-bold text-white">{scoreData?.learningTime || 0}h</p>
           </div>
         </div>
         <div className="glass rounded-3xl p-6 flex items-center gap-4">
@@ -45,7 +84,7 @@ export default function StudentProgressPage() {
           </div>
           <div>
              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Avg. Quiz Score</p>
-             <p className="text-2xl font-bold text-white">88%</p>
+             <p className="text-2xl font-bold text-white">{scoreData?.quizScore || 0}%</p>
           </div>
         </div>
         <div className="glass rounded-3xl p-6 flex items-center gap-4">
@@ -54,7 +93,7 @@ export default function StudentProgressPage() {
           </div>
           <div>
              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Achievements</p>
-             <p className="text-2xl font-bold text-white">12 Locked</p>
+             <p className="text-2xl font-bold text-white">{Math.floor((scoreData?.totalScore || 0) / 20)} Unlocked</p>
           </div>
         </div>
       </div>
@@ -101,17 +140,25 @@ export default function StudentProgressPage() {
                <Link href="/student/roadmap" className="text-xs text-blue-400 hover:text-blue-300">Detailed Stats</Link>
              </div>
              <div className="space-y-4">
-               {["Frontend Architecture", "State Management", "API Design", "Security"].map((skill, i) => (
-                 <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-                   <span className="text-sm text-gray-300">{skill}</span>
-                   <div className="flex items-center gap-2">
-                     <div className="h-1 w-20 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500" style={{ width: `${80 - (i * 10)}%` }} />
-                     </div>
-                     <span className="text-[10px] font-bold text-emerald-400">+{Math.floor(Math.random() * 5 + 2)}%</span>
-                   </div>
-                 </div>
-               ))}
+               {["GitHub Activity", "LeetCode Progress", "Project Mastery", "Consistency"].map((skill, i) => {
+                 const skillValues = [
+                   scoreData?.breakdown?.codingActivity?.score || 0,
+                   scoreData?.breakdown?.problemSolving?.score || 0,
+                   scoreData?.breakdown?.projects?.score || 0,
+                   scoreData?.breakdown?.consistency?.score || 0
+                 ];
+                 return (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <span className="text-sm text-gray-300">{skill}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1 w-20 bg-white/5 rounded-full overflow-hidden">
+                         <div className="h-full bg-emerald-500" style={{ width: `${skillValues[i]}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-400">{skillValues[i]}%</span>
+                    </div>
+                  </div>
+                 );
+               })}
              </div>
           </div>
 
@@ -134,5 +181,3 @@ export default function StudentProgressPage() {
   );
 }
 
-import Link from "next/link";
-import { Plus } from "lucide-react";

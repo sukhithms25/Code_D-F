@@ -3,24 +3,48 @@
 import { motion } from "framer-motion";
 import { 
   Trophy, 
-  Medal, 
   Crown, 
-  Star,
   ChevronUp,
   ChevronDown,
   TrendingUp
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-const rankings = [
-  { rank: 1, name: "Sneha Reddy", score: 982, cgpa: 9.8, status: "up", avatar: "SR" },
-  { rank: 2, name: "Rahul Sharma", score: 965, cgpa: 9.6, status: "up", avatar: "RS" },
-  { rank: 3, name: "Priya Singh", score: 954, cgpa: 9.5, status: "stable", avatar: "PS" },
-  { rank: 4, name: "Amit Patel", score: 942, cgpa: 9.4, status: "down", avatar: "AP" },
-  { rank: 5, name: "Neha Gupta", score: 928, cgpa: 9.2, status: "up", avatar: "NG" },
-];
+import { hodService } from "@/services/hod.service";
+import { useState, useEffect } from "react";
 
 export default function HODRankingsPage() {
+  const [rankings, setRankings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadRankings() {
+      try {
+        const res = await hodService.getRankings();
+        // Backend wraps in data.data or data.rankings — handle both
+        const raw = res.data?.data || res.data?.rankings || [];
+        // Normalize fields from backend User model to what the UI expects
+        const normalized = raw.map((s: any, i: number) => ({
+          rank: i + 1,
+          name: `${s.firstName || ""} ${s.lastName || ""}`.trim() || s.email,
+          score: Math.round(s.score || 0),
+          cgpa: s.cgpa || "N/A",
+          branch: s.branch || s.department || "—",
+          avatar: `${(s.firstName || "?")[0]}${(s.lastName || "?")[0]}`.toUpperCase(),
+          status: "stable"
+        }));
+        setRankings(normalized);
+      } catch (error) {
+        console.error("Failed to load rankings", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRankings();
+  }, []);
+
+  if (loading) return <div className="p-8 text-white flex items-center gap-3"><span className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /> Loading rankings...</div>;
+  if (rankings.length === 0) return <div className="p-8 text-gray-500 text-center">No student data available yet. Rankings are computed from live platform activity.</div>;
+
   return (
     <div className="space-y-8 pb-12">
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">

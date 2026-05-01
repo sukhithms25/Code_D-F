@@ -12,7 +12,6 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -30,16 +29,60 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-
-const students = [
-  { name: "Rahul Sharma", id: "CS2021001", cgpa: 8.9, progress: 92, status: "Excellent", risk: "Low" },
-  { name: "Anita Mishra", id: "CS2021042", cgpa: 7.2, progress: 45, status: "Underperforming", risk: "Medium" },
-  { name: "Vikram Kumar", id: "CS2021089", cgpa: 6.5, progress: 30, status: "At Risk", risk: "High" },
-  { name: "Sneha Reddy", id: "CS2021124", cgpa: 9.2, progress: 95, status: "Excellent", risk: "Low" },
-  { name: "Arjun Singh", id: "CS2021156", cgpa: 7.8, progress: 60, status: "Average", risk: "Low" },
-];
+import { hodService } from "@/services/hod.service";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function HODStudentsPage() {
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+
+  useEffect(() => {
+    async function loadStudents() {
+      try {
+        const res = await hodService.getStudents();
+        const raw = res.data?.students || res.data?.data || [];
+        // Normalize fields from backend User model
+        const normalized = raw.map((s: any) => ({
+          _id: s._id,
+          name: `${s.firstName || ""} ${s.lastName || ""}`.trim() || s.email,
+          id: s.studentId || s._id?.slice(-6)?.toUpperCase() || "N/A",
+          email: s.email,
+          cgpa: s.cgpa || "N/A",
+          progress: Math.round(s.progress || s.roadmapProgress || 0),
+          status: s.score >= 80 ? "Excellent" : s.score >= 60 ? "Average" : "Underperforming",
+          risk: s.score < 50 ? "High" : s.score < 70 ? "Medium" : "Low",
+          score: s.score || 0
+        }));
+        setStudents(normalized);
+      } catch (error) {
+        console.error("Failed to load students", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStudents();
+  }, []);
+
+  const viewStudentDetails = async (studentId: string) => {
+    try {
+      const res = await hodService.getStudentById(studentId);
+      const raw = res.data?.student || res.data?.data || {};
+      setSelectedStudent({
+        ...raw,
+        name: `${raw.firstName || ""} ${raw.lastName || ""}`.trim(),
+        cgpa: raw.cgpa || "N/A",
+        progress: Math.round(raw.progress || raw.roadmapProgress || 0),
+        risk: raw.score < 50 ? "High" : raw.score < 70 ? "Medium" : "Low",
+      });
+    } catch (error) {
+      console.error("Failed to load student detail", error);
+    }
+  };
+
+  if (loading) return <div className="p-8 text-white">Loading students...</div>;
+
   return (
     <div className="space-y-8 pb-12">
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -139,7 +182,7 @@ export default function HODStudentsPage() {
                     <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10 text-white">
                       <DropdownMenuLabel>Student Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator className="bg-white/5" />
-                      <DropdownMenuItem className="focus:bg-white/5 cursor-pointer">
+                      <DropdownMenuItem onClick={() => viewStudentDetails(student._id)} className="focus:bg-white/5 cursor-pointer">
                         <ExternalLink className="h-4 w-4 mr-2" /> View Full Profile
                       </DropdownMenuItem>
                       <DropdownMenuItem className="focus:bg-white/5 cursor-pointer">
@@ -156,6 +199,37 @@ export default function HODStudentsPage() {
           </TableBody>
         </Table>
       </motion.div>
+
+      <Dialog open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>
+        <DialogContent className="bg-zinc-900 border-white/10 text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Student Profile</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Detailed metrics for {selectedStudent?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-bold text-gray-400">UID:</span>
+                <span className="col-span-3">{selectedStudent.id}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-bold text-gray-400">CGPA:</span>
+                <span className="col-span-3">{selectedStudent.cgpa}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-bold text-gray-400">Progress:</span>
+                <span className="col-span-3">{selectedStudent.progress}%</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-bold text-gray-400">Risk:</span>
+                <span className="col-span-3">{selectedStudent.risk}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

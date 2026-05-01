@@ -31,6 +31,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async jwt({ token, user }: { token: any; user: any }) {
       if (user) {
         token.accessToken = user.accessToken;
@@ -38,6 +39,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, token }: { session: any; token: any }) {
       session.accessToken = token.accessToken;
       session.user = token.user;

@@ -15,9 +15,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { hodService } from "@/services/hod.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 const Container = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
   <motion.div 
@@ -32,8 +35,15 @@ const Container = ({ children, className = "" }: { children: React.ReactNode, cl
 export default function HODDashboard() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [metrics, setMetrics] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [riskAlerts, setRiskAlerts] = useState<any[]>([]);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [isAnnouncing, setIsAnnouncing] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchHODData = async () => {
@@ -75,6 +85,32 @@ export default function HODDashboard() {
     );
   }
 
+  const handleAnnounce = async () => {
+    if (!announcementTitle || !announcementMessage) return;
+    setIsAnnouncing(true);
+    try {
+      await hodService.sendAnnouncement({
+        title: announcementTitle,
+        body: announcementMessage
+      });
+      toast({
+        title: "Announcement Sent",
+        description: "Your message has been broadcasted to all students.",
+      });
+      setIsDialogOpen(false);
+      setAnnouncementTitle("");
+      setAnnouncementMessage("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send announcement.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnnouncing(false);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12">
       {/* Header */}
@@ -87,9 +123,48 @@ export default function HODDashboard() {
           <Button variant="outline" className="rounded-xl h-12 border-white/10 bg-white/5 text-white">
             Export Report
           </Button>
-          <Button className="rounded-xl h-12 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20">
-            <Plus className="h-4 w-4 mr-2" /> New Announcement
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="rounded-xl h-12 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20">
+                <Plus className="h-4 w-4 mr-2" /> New Announcement
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-900 border-white/10 text-white sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Create Announcement</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Broadcast a message to all students in your department.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Title</label>
+                  <Input 
+                    value={announcementTitle}
+                    onChange={(e) => setAnnouncementTitle(e.target.value)}
+                    placeholder="e.g. Mandatory Meeting" 
+                    className="bg-white/5 border-white/10 text-white h-10 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Message</label>
+                  <textarea 
+                    value={announcementMessage}
+                    onChange={(e) => setAnnouncementMessage(e.target.value)}
+                    placeholder="Type your message here..."
+                    className="w-full min-h-[100px] p-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none focus:ring-1 ring-blue-500/50 resize-none"
+                  />
+                </div>
+                <Button 
+                  onClick={handleAnnounce} 
+                  disabled={isAnnouncing || !announcementTitle || !announcementMessage}
+                  className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 text-white"
+                >
+                  {isAnnouncing ? "Sending..." : "Send Announcement"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
 

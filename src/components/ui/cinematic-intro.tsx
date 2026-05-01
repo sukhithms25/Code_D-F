@@ -66,7 +66,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
       // Using cloneNode to allow overlapping shutter sounds if interval is fast
       const s = new Audio(SFX.shutter)
       s.volume = 0.6
-      s.play().catch(e => {})
+      s.play().catch(() => {})
 
       const montageTimer = setInterval(() => {
         setCurrentImageIndex((prev) => {
@@ -75,7 +75,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
             
             // Trigger Whoosh slightly before the official completion for anticipation
             setTimeout(() => {
-              whooshAudio.current?.play().catch(e => {})
+              whooshAudio.current?.play().catch(() => {})
               setPhase('complete')
             }, 800)
             
@@ -85,7 +85,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
           // Play shutter sound for next image
           const nextS = new Audio(SFX.shutter)
           nextS.volume = 0.6
-          nextS.play().catch(e => {})
+          nextS.play().catch(() => {})
           
           return prev + 1
         })

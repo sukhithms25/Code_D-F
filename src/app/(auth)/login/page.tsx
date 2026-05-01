@@ -17,9 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
 import { SplineScene } from "@/components/ui/splite";
-import { Card } from "@/components/ui/card";
 import { ArrowLeft, BrainCircuit, Lock, Mail } from "lucide-react";
 
 export default function LoginPage() {

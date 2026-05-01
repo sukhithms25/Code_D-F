@@ -9,8 +9,6 @@ import {
   Map, 
   CheckSquare, 
   Users, 
-  BarChart3, 
-  Bell, 
   Settings,
   BrainCircuit,
   FileSearch,

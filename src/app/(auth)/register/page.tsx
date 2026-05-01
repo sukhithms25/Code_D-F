@@ -20,7 +20,7 @@ import { motion } from "framer-motion";
 import { authService } from "@/services/auth.service";
 import { toast } from "@/hooks/use-toast";
 import { SplineScene } from "@/components/ui/splite";
-import { ArrowLeft, UserPlus, Fingerprint, ShieldCheck } from "lucide-react";
+import { ArrowLeft, UserPlus, ShieldCheck } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -46,7 +46,8 @@ export default function RegisterPage() {
   async function onSubmit(values: RegisterValues) {
     setLoading(true);
     try {
-      const { confirmPassword, ...payload } = values;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { confirmPassword: _confirmPassword, ...payload } = values;
       
       // Clean up payload: only send relevant fields for the role
       if (payload.role === "student") {
@@ -58,7 +59,7 @@ export default function RegisterPage() {
 
       // Remove any empty strings to satisfy backend Joi validation
       const cleanPayload = Object.fromEntries(
-        Object.entries(payload).filter(([_, v]) => v !== "" && v !== null)
+        Object.entries(payload).filter(([, v]) => v !== "" && v !== null)
       );
 
       await authService.register(cleanPayload);
@@ -67,6 +68,7 @@ export default function RegisterPage() {
         description: "Your account has been created. Please log in.",
       });
       router.push("/login");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast({
         title: "Registration Failed",
@@ -102,9 +104,7 @@ export default function RegisterPage() {
               </div>
               <h2 className="text-3xl font-bold tracking-tighter">NEW ENTITY</h2>
             </div>
-            <p className="text-neutral-400 text-lg leading-relaxed font-light italic">
-              "The best way to predict the future is to orchestrate it." Initialize your academic profile now.
-            </p>
+              &quot;The best way to predict the future is to orchestrate it.&quot; Initialize your academic profile now.
           </div>
 
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-neutral-600">

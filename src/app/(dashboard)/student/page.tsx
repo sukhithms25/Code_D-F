@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { studentService } from "@/services/student.service";
 
 const Container = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
@@ -32,19 +33,23 @@ const Container = ({ children, className = "" }: { children: React.ReactNode, cl
 
 export default function StudentDashboard() {
   const { data: session } = useSession();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [activeRoadmap, setActiveRoadmap] = useState<any>(null);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [scoreRes, roadmapRes, recsRes] = await Promise.all([
+        const [scoreRes, roadmapRes, recsRes, announceRes] = await Promise.all([
           studentService.getScore(),
           studentService.getRoadmap(),
-          studentService.getRecommendations()
+          studentService.getRecommendations(),
+          studentService.getAnnouncements()
         ]);
 
         // Process Stats
@@ -58,6 +63,7 @@ export default function StudentDashboard() {
 
         setRecommendations(recsRes.data?.data || []);
         setActiveRoadmap(roadmapRes.data?.data || null);
+        setAnnouncements(announceRes.data?.announcements || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -148,6 +154,7 @@ export default function StudentDashboard() {
                 </Button>
               </div>
             ) : (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               activeRoadmap.slice(0, 3).map((week: any, index: number) => (
                 <div key={index} className="relative pl-8 group">
                   <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-white/10 group-last:bottom-auto group-last:h-6">
@@ -203,15 +210,40 @@ export default function StudentDashboard() {
               <h2 className="text-xl font-bold text-white">Campus Alerts</h2>
             </div>
             <div className="space-y-4">
-              <div className="flex gap-4 p-3 rounded-2xl bg-white/5">
-                <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-xl bg-orange-500/10 text-orange-500 font-bold">
-                  !
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-white">Hackathon Registration</h4>
-                  <p className="text-xs text-gray-500 mt-1">Ends in 2 days. Don't miss out on the annual dev fest.</p>
-                </div>
-              </div>
+              {announcements.length === 0 ? (
+                <p className="text-xs text-gray-500 italic py-4">No campus alerts today.</p>
+              ) : (
+                announcements.slice(0, 2).map((ann, i) => (
+                  <div key={i} className="flex gap-4 p-3 rounded-2xl bg-white/5 border border-white/5 relative group">
+                    <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-xl bg-orange-500/10 text-orange-500 font-bold">
+                      !
+                    </div>
+                    <div className="flex-grow">
+                      <h4 className="text-sm font-medium text-white">{ann.title}</h4>
+                      <p className="text-xs text-gray-500 mt-1">{ann.message}</p>
+                      
+                      {!ann.acknowledged && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={async () => {
+                            try {
+                              await studentService.respondAnnouncement(ann._id, { response: "Acknowledged" });
+                              setAnnouncements(announcements.map(a => a._id === ann._id ? { ...a, acknowledged: true } : a));
+                              toast({ title: "Acknowledged", description: "You have acknowledged this announcement." });
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                          className="h-7 px-2 text-[10px] text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 mt-2"
+                        >
+                          Mark as Read
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </Container>
         </div>

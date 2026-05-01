@@ -56,14 +56,12 @@ export default function AIChatPage() {
     setIsTyping(true);
 
     try {
-      // Small delay for natural feel
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const response = await aiService.chat(input);
+      const replyText = response.data?.data?.reply || response.data?.reply || "I'm processing your request. Let's look at your roadmap together.";
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: response.data.reply || "I'm processing your request. Let's look at your roadmap together.",
+        content: replyText,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
